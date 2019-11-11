@@ -1,22 +1,24 @@
-const transpile = require('./index')
-const Vue = require('vue')
-const { compile } = require('vue-template-compiler')
+const transpile = require("./index");
+const Vue = require("vue");
+const { compile } = require("vue-template-compiler");
 
 const toFunction = code => {
-  code = transpile(`function render(){${code}}`)
-  code = code.replace(/function render\(\)\{|\}$/g, '')
-  return new Function(code)
-}
+  // console.log('BEFORE', code);
+  code = transpile(`function render(){${code}}`, { configFile: false });
+  code = code.replace(/function render\(\)/g, "return function render()");
+  // console.log('AFTER', code);
+  return new Function(code)();
+};
 
 const compileAsFunctions = template => {
-  const { render, staticRenderFns } = compile(template)
+  const { render, staticRenderFns } = compile(template);
   return {
     render: toFunction(render),
     staticRenderFns: staticRenderFns.map(toFunction)
-  }
-}
+  };
+};
 
-test('should work', () => {
+test("should work", () => {
   const vm = new Vue({
     ...compileAsFunctions(`
       <div>
@@ -26,32 +28,21 @@ test('should work', () => {
       </div>
     `),
     data: {
-      foo: 'hello',
-      items: [
-        { name: 'foo' },
-        { name: 'bar' }
-      ],
-      a: { id: 'foo' },
-      b: { class: 'bar' }
+      foo: "hello",
+      items: [{ name: "foo" }, { name: "bar" }],
+      a: { id: "foo" },
+      b: { class: "bar" }
     }
-  }).$mount()
+  }).$mount();
 
   expect(vm.$el.innerHTML).toMatch(
     `<div>hello</div> ` +
-    `<div>foo</div><div>bar</div> ` +
-    `<div id="foo" class="bar"></div>`
-  )
-})
+      `<div>foo</div><div>bar</div> ` +
+      `<div id="foo" class="bar"></div>`
+  );
+});
 
-test('arg spread', () => {
-  const res = compile(`
-    <button @click="(...args) => { store.foo(...args) }">Go</button>
-  `)
-  const code = transpile(`function render() {${res.render}}`)
-  expect(code).toMatch(`_vm.store.foo.apply(_vm.store, args)`)
-})
-
-test('rest spread in scope position', () => {
+test("rest spread in scope position", () => {
   const vm = new Vue({
     ...compileAsFunctions(`
       <foo v-slot="{ foo, ...rest }">{{ rest }}</foo>
@@ -59,23 +50,24 @@ test('rest spread in scope position', () => {
     components: {
       foo: {
         render(h) {
-          return h('div', this.$scopedSlots.default({
-            foo: 1,
-            bar: 2,
-            baz: 3
-          }))
+          return h(
+            "div",
+            this.$scopedSlots.default({
+              foo: 1,
+              bar: 2,
+              baz: 3
+            })
+          );
         }
       }
     }
-  }).$mount()
+  }).$mount();
 
-  expect(vm.$el.innerHTML).toMatch(
-    JSON.stringify({ bar: 2, baz: 3 }, null, 2)
-  )
-})
+  expect(vm.$el.innerHTML).toMatch(JSON.stringify({ bar: 2, baz: 3 }, null, 2));
+});
 
-test('trailing function comma', () => {
-  const spy = jest.fn()
+test("trailing function comma", () => {
+  const spy = jest.fn();
   const vm = new Vue({
     ...compileAsFunctions(`
       <button @click="spy(1,)" />
@@ -83,18 +75,18 @@ test('trailing function comma', () => {
     methods: {
       spy
     }
-  }).$mount()
-  vm.$el.click()
-  expect(spy).toHaveBeenCalled()
-})
+  }).$mount();
+  vm.$el.click();
+  expect(spy).toHaveBeenCalled();
+});
 
-test('v-model code', () => {
+test("v-model code", () => {
   const vm = new Vue({
     ...compileAsFunctions(`
       <input v-model="text" />
     `),
     data: {
-      text: 'foo'
+      text: "foo"
     }
-  }).$mount()
-})
+  }).$mount();
+});

@@ -1,26 +1,19 @@
-var buble = require('./buble.js')
+const babel = require("@babel/core");
 
-// selectively support some handy ES2015 features in templates.
-var defaultOptions = {
-  transforms: {
-    modules: false,
-    // this is a custom feature for stripping with from Vue render functions.
-    stripWith: true,
-    // custom feature ensures with context targets functional render
-    stripWithFunctional: false
-  },
-  // allow spread...
-  objectAssign: 'Object.assign'
-}
+const defaultOptions = {
+  presets: [
+    [
+      "@babel/env",
+      {
+        targets: "> 0.25%, not dead"
+      }
+    ]
+  ],
+  sourceType: "unambiguous"
+};
 
-module.exports = function transpile (code, opts) {
-  if (opts) {
-    opts = Object.assign({}, defaultOptions, opts)
-    opts.transforms = Object.assign({}, defaultOptions.transforms, opts.transforms)
-  } else {
-    opts = defaultOptions
-  }
-  var code = buble.transform(code, opts).code
-  // console.log(code)
-  return code
-}
+module.exports = function transpile(code, options) {
+  if (!options) options = {};
+  return babel.transformSync(code, Object.assign({}, defaultOptions, options))
+    .code;
+};
